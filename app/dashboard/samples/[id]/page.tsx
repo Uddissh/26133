@@ -1,39 +1,6 @@
 import QRCode from "qrcode";
-import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-
-async function addResult(formData: FormData) {
-  "use server";
-  const supabase = await createClient();
-  const sample_id = formData.get("sample_id") as string;
-  const test_type = formData.get("test_type") as string;
-  const value = Number(formData.get("value"));
-  const unit = formData.get("unit") as string;
-
-  const { error } = await supabase
-    .from("test_results")
-    .insert({ sample_id, test_type, value, unit });
-  if (error) throw new Error(error.message);
-  revalidatePath(`/dashboard/samples/${sample_id}`);
-}
-
-async function uploadReport(formData: FormData) {
-  "use server";
-  const supabase = await createClient();
-  const sample_id = formData.get("sample_id") as string;
-  const file = formData.get("file") as File;
-  if (!file || file.size === 0) return;
-
-  const path = `${sample_id}.pdf`;
-  const { error: upErr } = await supabase.storage
-    .from("reports")
-    .upload(path, file, { upsert: true, contentType: "application/pdf" });
-  if (upErr) throw new Error(upErr.message);
-
-  const { error } = await supabase.from("samples").update({ report_path: path }).eq("id", sample_id);
-  if (error) throw new Error(error.message);
-  revalidatePath(`/dashboard/samples/${sample_id}`);
-}
+import { addResult, uploadReport } from "@/app/actions";
 
 export default async function SampleDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

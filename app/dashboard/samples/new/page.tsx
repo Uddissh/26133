@@ -1,33 +1,4 @@
-import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-
-async function registerSample(formData: FormData) {
-  "use server";
-  const supabase = await createClient();
-
-  const { data: userData } = await supabase.auth.getUser();
-  const { data: staffRow } = await supabase
-    .from("staff")
-    .select("hospital_id")
-    .eq("id", userData.user?.id)
-    .single();
-
-  if (!staffRow) throw new Error("Staff record not found for this user.");
-
-  const { data, error } = await supabase
-    .from("samples")
-    .insert({
-      patient_name: formData.get("patient_name") as string,
-      guardian_contact: formData.get("guardian_contact") as string,
-      hospital_id: staffRow.hospital_id,
-      created_by: userData.user?.id,
-    })
-    .select("id")
-    .single();
-
-  if (error) throw new Error(error.message);
-  redirect(`/dashboard/samples/${data.id}`);
-}
+import { registerSample } from "@/app/actions";
 
 export default function NewSamplePage() {
   return (
